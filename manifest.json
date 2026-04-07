@@ -1,0 +1,14 @@
+{
+  "name": "Orderly — AI Düzen Asistanı",
+  "short_name": "Orderly",
+  "description": "Fotoğrafla düzen, yapay zekayla rehber",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B2B26",
+  "theme_color": "#0D9E6D",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

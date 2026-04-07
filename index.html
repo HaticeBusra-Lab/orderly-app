@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Orderly — AI Düzen Asistanı</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0D9E6D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Orderly">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--p:#0D9E6D;--pd:#0B2B26;--pl:#E8F5EE;--cr:#F7F5F0;--coral:#E8593C;--gold:#D4A843;--g1:#F5F5F5;--g2:#E5E5E5;--g4:#A3A3A3;--g5:#737373;--g6:#525252;--w:#fff;--r:14px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--cr);color:var(--pd);max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;overflow-x:hidden}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+.screen{flex:1;padding:0 20px 100px;overflow-y:auto;display:none}
+.screen.active{display:block}
+
+/* Nav */
+.nav{display:flex;justify-content:space-between;align-items:center;padding:20px 0 12px}
+.nav-title{font-size:24px;font-weight:700;color:var(--pd);letter-spacing:-1px}
+.nav-icons{display:flex;gap:8px}
+.ni{width:38px;height:38px;border-radius:19px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:16px;border:none;transition:all .2s}
+.ni:hover{transform:scale(1.08)}
+.ni.on{background:var(--p)}
+
+/* Lang toggle */
+.lang-t{display:flex;background:var(--g1);border-radius:10px;padding:3px;margin-bottom:14px}
+.lang-b{flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:500;color:var(--g5);background:none;text-align:center;transition:all .2s}
+.lang-b.on{background:var(--w);color:var(--pd);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* Voice bar */
+.vbar{display:flex;align-items:center;gap:12px;padding:14px;background:var(--w);border-radius:16px;border:1px solid var(--g2);margin-bottom:14px;cursor:pointer;transition:border-color .2s}
+.vbar:hover{border-color:var(--p)}
+.vbar-icon{width:40px;height:40px;border-radius:20px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.vbar-title{font-size:14px;font-weight:500;color:var(--pd)}
+.vbar-sub{font-size:12px;color:var(--g5)}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,var(--pd),#145A42);border-radius:20px;padding:24px;color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.06)}
+.hero h2{font-size:26px;font-weight:600;line-height:1.25;margin-bottom:6px;white-space:pre-line}
+.hero p{font-size:13px;opacity:.75;margin-bottom:20px}
+.scan-btn{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--pd);padding:14px 24px;border-radius:14px;font-size:15px;font-weight:500;transition:transform .15s}
+.scan-btn:hover{transform:scale(1.03)}
+
+/* Section label */
+.sec-l{font-size:11px;font-weight:600;color:var(--g5);letter-spacing:1.5px;margin-bottom:12px;text-transform:uppercase}
+
+/* Area grid */
+.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.a-card{background:var(--w);border-radius:16px;padding:16px;border:1px solid var(--g2);cursor:pointer;transition:transform .15s}
+.a-card:hover{transform:translateY(-2px)}
+.a-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:8px}
+.a-name{font-size:14px;font-weight:500;color:var(--pd)}
+.a-sub{font-size:11px;color:var(--g5);margin-top:2px}
+
+/* Recent scans */
+.card{background:var(--w);border-radius:16px;padding:16px;border:1px solid var(--g2);margin-bottom:14px}
+.recent{display:flex;align-items:center;gap:12px;padding:12px 0}
+.recent+.recent{border-top:1px solid var(--g2)}
+.r-thumb{width:48px;height:48px;border-radius:10px;flex-shrink:0}
+.r-name{font-size:14px;font-weight:500;color:var(--pd)}
+.r-time{font-size:12px;color:var(--g5)}
+.badge{padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600}
+
+/* Analyzing */
+.analyzing{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:40px 20px}
+.analyzing.active{display:flex}
+.pulse{width:100px;height:100px;border-radius:50%;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:20px;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* Result */
+.score-wrap{text-align:center;padding:20px 0}
+.score-circle{width:110px;height:110px;border-radius:55px;border:5px solid;display:inline-flex;flex-direction:column;align-items:center;justify-content:center}
+.score-val{font-size:36px;font-weight:600}
+.score-max{font-size:12px;color:var(--g5)}
+.score-label{font-size:14px;font-weight:500;margin-top:8px}
+.score-area{font-size:12px;color:var(--g5);margin-top:4px}
+
+.card-title{font-size:14px;font-weight:500;margin-bottom:8px}
+.card-item{font-size:13px;color:var(--g6);line-height:1.7;margin-bottom:2px}
+.res-sec{font-size:14px;font-weight:500;color:var(--pd);margin:20px 0 10px}
+
+.zone{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;border:2px dashed;margin-bottom:8px}
+.zone-dot{width:10px;height:10px;border-radius:5px;flex-shrink:0}
+.zone-name{font-size:13px;font-weight:500;color:var(--pd)}
+
+.step{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--g2)}
+.step:last-child{border-bottom:none}
+.s-num{width:30px;height:30px;border-radius:15px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:var(--p);flex-shrink:0}
+.s-title{font-size:14px;font-weight:500;color:var(--pd)}
+.s-desc{font-size:13px;color:var(--g5);margin-top:2px;line-height:1.5}
+.listen{display:inline-flex;align-items:center;gap:4px;background:var(--pl);padding:5px 10px;border-radius:8px;font-size:11px;font-weight:500;color:var(--p);margin-top:6px;cursor:pointer;transition:all .2s}
+.listen:hover{background:var(--p);color:#fff}
+
+.shop{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--g2);gap:10px}
+.shop:last-child{border-bottom:none}
+.shop-name{font-size:13px;color:var(--pd)}
+.shop-price{font-size:12px;color:var(--p);margin-top:2px}
+.shop-btn{width:36px;height:36px;border-radius:18px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;text-decoration:none;transition:all .2s}
+.shop-btn:hover{background:var(--p);filter:brightness(1.1)}
+
+/* Settings */
+.sett{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--g2)}
+.sett:last-child{border-bottom:none}
+.sett-left{display:flex;align-items:center;gap:12px}
+.sett-icon{width:36px;height:36px;border-radius:10px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sett-name{font-size:14px;font-weight:500;color:var(--pd)}
+.sett-sub{font-size:12px;color:var(--g5)}
+.toggle{width:44px;height:26px;border-radius:13px;background:var(--g2);position:relative;cursor:pointer;transition:background .2s}
+.toggle.on{background:var(--p)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle.on::after{transform:translateX(18px)}
+
+/* Popup */
+.popup-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.popup-bg.active{display:flex}
+.popup{background:var(--w);border-radius:24px;padding:24px;max-width:360px;width:100%;text-align:center}
+.popup h3{font-size:18px;font-weight:500;color:var(--pd);margin:8px 0}
+.popup p{font-size:13px;color:var(--g5);line-height:1.6;margin-bottom:20px}
+.popup-btns{display:flex;gap:10px}
+.popup-g{flex:1;padding:14px;border-radius:14px;background:var(--p);color:#fff;font-size:14px;font-weight:500}
+.popup-w{flex:1;padding:14px;border-radius:14px;background:var(--g1);color:var(--g5);font-size:14px;font-weight:500}
+.popup-note{font-size:11px;color:var(--g4);margin-top:12px}
+
+/* Tab bar */
+.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;justify-content:space-around;padding:10px 0 18px;background:var(--cr);border-top:1px solid var(--g2);z-index:50}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;opacity:.4;transition:opacity .2s;min-width:60px}
+.tab.on{opacity:1}
+.tab span:first-child{font-size:20px}
+.tab span:last-child{font-size:10px;font-weight:500}
+
+/* Back button */
+.back{color:var(--p);font-size:14px;font-weight:500;background:none;padding:0;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- ========== ANA EKRAN ========== -->
+<div class="screen active" id="home">
+  <div class="nav">
+    <div class="nav-title">orderly</div>
+    <div class="nav-icons">
+      <button class="ni" onclick="switchLang()" title="Dil değiştir">🌍</button>
+      <button class="ni" id="voiceToggle" onclick="toggleVoice()" title="Sesli yönlendirme">🎙️</button>
+      <button class="ni" onclick="go('settings')" title="Ayarlar">⚙️</button>
+    </div>
+  </div>
+
+  <div class="lang-t">
+    <button class="lang-b on" id="lbTR" onclick="setLang('tr')">Türkçe</button>
+    <button class="lang-b" id="lbEN" onclick="setLang('en')">English</button>
+  </div>
+
+  <div class="vbar" id="voiceBar" onclick="sayText(T().voiceHint)">
+    <div class="vbar-icon">🎙️</div>
+    <div>
+      <div class="vbar-title" id="vbTitle"></div>
+      <div class="vbar-sub" id="vbSub"></div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h2 id="heroTitle"></h2>
+    <p id="heroSub"></p>
+    <button class="scan-btn" onclick="startAnalysis('pantry')">
+      <span>📸</span> <span id="scanText"></span>
+    </button>
+  </div>
+
+  <div class="sec-l" id="areaLabel"></div>
+  <div class="a-grid" id="areaGrid"></div>
+
+  <div class="sec-l" id="recentLabel"></div>
+  <div class="card" id="recentCard"></div>
+</div>
+
+<!-- ========== ANALİZ YÜKLEME ========== -->
+<div class="analyzing" id="analyzingScreen">
+  <div class="pulse">🔍</div>
+  <div style="font-size:20px;font-weight:500;color:var(--pd)" id="analyzingText"></div>
+  <div style="font-size:14px;color:var(--g5);margin-top:8px" id="analyzingSub"></div>
+</div>
+
+<!-- ========== SONUÇ EKRANI ========== -->
+<div class="screen" id="result">
+  <div class="nav">
+    <button class="back" onclick="go('home')">← <span id="backText"></span></button>
+    <div style="font-size:18px;font-weight:600;color:var(--pd)" id="resultTitle"></div>
+    <button class="ni" onclick="readAllSteps()" title="Tümünü oku">🔊</button>
+  </div>
+  <div class="score-wrap" id="scoreWrap"></div>
+  <div class="card" id="issuesCard"></div>
+  <div class="res-sec" id="layoutLabel"></div>
+  <div id="zonesWrap"></div>
+  <div class="res-sec" id="guideLabel"></div>
+  <div id="stepsWrap"></div>
+  <div class="card" id="shopCard" style="margin-top:16px"></div>
+</div>
+
+<!-- ========== AYARLAR ========== -->
+<div class="screen" id="settings">
+  <div class="nav">
+    <button class="back" onclick="go('home')">← <span id="settBack"></span></button>
+    <div style="font-size:20px;font-weight:600;color:var(--pd)" id="settTitle"></div>
+    <div style="width:36px"></div>
+  </div>
+  <div class="card" id="settCard"></div>
+</div>
+
+<!-- ========== ÜRÜN POPUP ========== -->
+<div class="popup-bg" id="popup">
+  <div class="popup">
+    <div style="font-size:32px">✨</div>
+    <h3 id="popTitle"></h3>
+    <p id="popDesc"></p>
+    <div class="popup-btns">
+      <button class="popup-g" id="popYes" onclick="closePopup()"></button>
+      <button class="popup-w" id="popNo" onclick="closePopup()"></button>
+    </div>
+    <div class="popup-note" id="popNote"></div>
+  </div>
+</div>
+
+<!-- ========== TAB BAR ========== -->
+<div class="tabs">
+  <div class="tab on" id="tabHome" onclick="go('home')"><span>🏠</span><span id="tabHomeL"></span></div>
+  <div class="tab" id="tabScans" onclick="go('home')"><span>✅</span><span id="tabScansL"></span></div>
+  <div class="tab" id="tabVoice" onclick="go('home')"><span>🎙️</span><span id="tabVoiceL"></span></div>
+  <div class="tab" id="tabSettings" onclick="go('settings')"><span>⚙️</span><span id="tabSettL"></span></div>
+</div>
+
+<script>
+// ===== STATE =====
+let lang='tr', voiceOn=true, bigText=false, currentArea='pantry', currentResult=null;
+
+// ===== DATA =====
+const STR={
+  tr:{heroTitle:'Dağınıklığı\ndüzene çevir',heroSub:'Fotoğrafı çek, yapay zeka düzenlesin',scanArea:'Alanı tara',areaTypes:'ALAN TÜRLERİ',recentScans:'SON TARAMALAR',pantry:'Kiler',wardrobe:'Kıyafet dolabı',office:'Ofis / Raf',garage:'Garaj / Depo',mostPopular:'En popüler',voiceCommand:'Sesli komut ver',voiceHint:'"Kileri tara" veya "Dolabı düzenle"',back:'Geri',analysisResult:'Analiz sonucu',needsReorg:'Yeniden düzenleme gerekli',good:'İyi durumda',excellent:'Mükemmel',detectedIssues:'Tespit edilen sorunlar',suggestedLayout:'Önerilen yerleşim planı',orderGuide:'Düzen rehberi',shoppingList:'Alışveriş listesi',listen:'Dinle',productTitle:'Düzenin için öneriler var!',productDesc:'Analiz sonucuna göre sana en uygun organizer ürünleri bulduk. Görmek ister misin?',viewProducts:'Ürünleri gör',notNow:'Şimdi değil',productNote:'Bu öneriler alışveriş sitelerinden seçilmiştir',settings:'Ayarlar',language:'Dil',voiceNav:'Sesli yönlendirme',largeText:'Büyük yazı tipi',home:'Ana sayfa',scans:'Taramalar',voice:'Sesli',profile:'Profil',today:'Bugün',yesterday:'Dün',analyzing:'Analiz ediliyor...',analyzingSub:'Yapay zeka alanınızı analiz ediyor...',templates:'şablon'},
+  en:{heroTitle:'Turn clutter\ninto order',heroSub:'Take a photo, let AI organize',scanArea:'Scan area',areaTypes:'AREA TYPES',recentScans:'RECENT SCANS',pantry:'Pantry',wardrobe:'Wardrobe',office:'Office / Shelf',garage:'Garage / Storage',mostPopular:'Most popular',voiceCommand:'Voice command',voiceHint:'"Scan pantry" or "Organize closet"',back:'Back',analysisResult:'Analysis result',needsReorg:'Needs reorganization',good:'Looking good',excellent:'Excellent',detectedIssues:'Detected issues',suggestedLayout:'Suggested layout',orderGuide:'Order guide',shoppingList:'Shopping list',listen:'Listen',productTitle:'Suggestions for you!',productDesc:'We found the best organizer products. Would you like to see them?',viewProducts:'View products',notNow:'Not now',productNote:'Recommendations from online shops',settings:'Settings',language:'Language',voiceNav:'Voice navigation',largeText:'Large text',home:'Home',scans:'Scans',voice:'Voice',profile:'Profile',today:'Today',yesterday:'Yesterday',analyzing:'Analyzing...',analyzingSub:'AI is analyzing your space...',templates:'templates'}
+};
+
+const DEMO={
+  pantry:{tr:{score:42,issues:['Kategorisiz yığılma — farklı ürünler karışık','Son kullanma tarihi geçmiş ürünler olabilir','Arka raftakilere erişim zor','Etiket/sınıflandırma yok'],zones:[{n:'Günlük kullanım',c:'#E8593C'},{n:'Haftalık malzemeler',c:'#D4A843'},{n:'Stok ürünler',c:'#0D9E6D'},{n:'Baharatlar & soslar',c:'#6366F1'}],steps:[{t:'Boşalt',d:'Tüm ürünleri çıkar, son kullanma tarihlerini kontrol et'},{t:'Sınıfla',d:'Kuru gıda, konserve, baharat, atıştırmalık olarak grupla'},{t:'Yerleştir',d:'Günlük kullanılanları göz hizasına, ağırları alta koy'},{t:'Etiketle',d:'Her rafa ve kutuya etiket koy'}],shop:[{i:'Kapaklı saklama kapları seti (10lu)',p:'₺150-350',s:'Trendyol',u:'https://www.trendyol.com/sr?q=kapaklı+saklama+kabı+seti'},{i:'Döner raf düzenleyici',p:'₺80-200',s:'Hepsiburada',u:'https://www.hepsiburada.com/ara?q=döner+raf+düzenleyici'},{i:'Etiket makinesi (Bluetooth)',p:'₺250-500',s:'Amazon',u:'https://www.amazon.com.tr/s?k=etiket+makinesi+bluetooth'},{i:'Çekmece tipi raf organizer',p:'₺80-200',s:'Trendyol',u:'https://www.trendyol.com/sr?q=çekmece+raf+düzenleyici'}]},en:{score:42,issues:['Uncategorized clutter — items mixed','Possible expired products','Hard to reach back items','No labels'],zones:[{n:'Daily use',c:'#E8593C'},{n:'Weekly supplies',c:'#D4A843'},{n:'Stock items',c:'#0D9E6D'},{n:'Spices & sauces',c:'#6366F1'}],steps:[{t:'Empty',d:'Remove all items, check expiration dates'},{t:'Categorize',d:'Group into dry goods, canned, spices, snacks'},{t:'Place',d:'Daily items at eye level, heavy at bottom'},{t:'Label',d:'Add labels to each shelf and container'}],shop:[{i:'Airtight container set (10pc)',p:'$15-30',s:'Amazon',u:'https://www.amazon.com.tr/s?k=airtight+container+set'},{i:'Lazy susan turntable',p:'$10-25',s:'Amazon',u:'https://www.amazon.com.tr/s?k=lazy+susan'},{i:'Label maker (Bluetooth)',p:'$20-40',s:'Amazon',u:'https://www.amazon.com.tr/s?k=label+maker+bluetooth'},{i:'Pull-out shelf organizer',p:'$15-30',s:'Amazon',u:'https://www.amazon.com.tr/s?k=pull+out+shelf+organizer'}]}},
+  wardrobe:{tr:{score:55,issues:['Kıyafetler kategorize edilmemiş','Mevsimlik ayırma yapılmamış','Askı tipleri karışık','Çekmeceler düzensiz'],zones:[{n:'Günlük kıyafetler',c:'#E8593C'},{n:'İş kıyafetleri',c:'#D4A843'},{n:'Mevsimlik depo',c:'#0D9E6D'},{n:'Aksesuarlar',c:'#6366F1'}],steps:[{t:'Boşalt',d:'Tüm kıyafetleri çıkar, giymediğini ayır'},{t:'Sınıfla',d:'Günlük, iş, spor, özel gün olarak grupla'},{t:'Yerleştir',d:'En çok giydiğini öne, mevsimliği arkaya'},{t:'Etiketle',d:'Bölmeleri etiketle, kutuları işaretle'}],shop:[{i:'Kadife askı seti (30lu)',p:'₺100-250',s:'Trendyol',u:'https://www.trendyol.com/sr?q=kadife+askı+seti'},{i:'Raf bölücü (4lü)',p:'₺60-150',s:'Hepsiburada',u:'https://www.hepsiburada.com/ara?q=raf+bölücü'},{i:'Çekmece organizer',p:'₺50-120',s:'Trendyol',u:'https://www.trendyol.com/sr?q=çekmece+organizer'},{i:'Vakumlu poşet seti',p:'₺80-180',s:'Amazon',u:'https://www.amazon.com.tr/s?k=vakumlu+poşet+seti'}]},en:{score:55,issues:['Clothes not categorized','No seasonal separation','Mixed hanger types','Drawers disorganized'],zones:[{n:'Daily wear',c:'#E8593C'},{n:'Work clothes',c:'#D4A843'},{n:'Seasonal storage',c:'#0D9E6D'},{n:'Accessories',c:'#6366F1'}],steps:[{t:'Empty',d:'Remove everything, separate unworn items'},{t:'Categorize',d:'Group into daily, work, sport, special'},{t:'Place',d:'Most worn in front, seasonal in back'},{t:'Label',d:'Label sections, mark boxes'}],shop:[{i:'Velvet hanger set (30pc)',p:'$15-30',s:'Amazon',u:'https://www.amazon.com.tr/s?k=velvet+hanger+set'},{i:'Shelf dividers (4pc)',p:'$10-20',s:'Amazon',u:'https://www.amazon.com.tr/s?k=shelf+dividers'},{i:'Drawer organizer',p:'$8-15',s:'Amazon',u:'https://www.amazon.com.tr/s?k=drawer+organizer'},{i:'Vacuum storage bags',p:'$12-25',s:'Amazon',u:'https://www.amazon.com.tr/s?k=vacuum+storage+bags'}]}},
+  office:{tr:{score:34,issues:['Kağıt yığınları kategorisiz','Plastik poşet/ambalaj atıkları mevcut','Dikey alan kullanımı verimsiz','Etiket/sınıflandırma yok'],zones:[{n:'Referans dosyalar',c:'#E8593C'},{n:'İşlem bekleyen evraklar',c:'#D4A843'},{n:'Ofis malzemeleri',c:'#0D9E6D'},{n:'Arşiv kutuları',c:'#6366F1'}],steps:[{t:'Boşalt',d:'Tüm eşyaları raftan çıkar, çöpleri at'},{t:'Sınıfla',d:'Dosya, malzeme, arşiv olarak grupla'},{t:'Yerleştir',d:'Sık kullanılanlar göz hizasına'},{t:'Etiketle',d:'Her bölgeye görünür etiket koy'}],shop:[{i:'L-boy klasör (×3)',p:'₺30-80',s:'Trendyol',u:'https://www.trendyol.com/sr?q=L+boy+klasör'},{i:'Etiket makinesi',p:'₺250-500',s:'Amazon',u:'https://www.amazon.com.tr/s?k=etiket+makinesi'},{i:'Şeffaf saklama kutusu (×2)',p:'₺120-280',s:'Hepsiburada',u:'https://www.hepsiburada.com/ara?q=şeffaf+saklama+kutusu'},{i:'Masaüstü dosya organizer',p:'₺90-250',s:'Trendyol',u:'https://www.trendyol.com/sr?q=masaüstü+dosya+organizer'}]},en:{score:34,issues:['Paper piles uncategorized','Plastic bags and packaging waste','Vertical space inefficient','No labels or classification'],zones:[{n:'Reference files',c:'#E8593C'},{n:'Pending documents',c:'#D4A843'},{n:'Office supplies',c:'#0D9E6D'},{n:'Archive boxes',c:'#6366F1'}],steps:[{t:'Empty',d:'Remove all items, throw away trash'},{t:'Categorize',d:'Group into files, supplies, archive'},{t:'Place',d:'Frequently used at eye level'},{t:'Label',d:'Add visible labels to each zone'}],shop:[{i:'Binder folders (×3)',p:'$5-12',s:'Amazon',u:'https://www.amazon.com.tr/s?k=binder+folders'},{i:'Label maker',p:'$20-40',s:'Amazon',u:'https://www.amazon.com.tr/s?k=label+maker'},{i:'Clear storage boxes (×2)',p:'$15-30',s:'Amazon',u:'https://www.amazon.com.tr/s?k=clear+storage+box'},{i:'Desktop file organizer',p:'$10-25',s:'Amazon',u:'https://www.amazon.com.tr/s?k=desktop+file+organizer'}]}},
+  garage:{tr:{score:28,issues:['Alet ve malzemeler karışık','Zemin alanı verimsiz','Duvar montaj sistemi yok','Mevsimlik eşyalar düzensiz'],zones:[{n:'Sık kullanılan aletler',c:'#E8593C'},{n:'Bahçe malzemeleri',c:'#0D9E6D'},{n:'Mevsimlik eşyalar',c:'#D4A843'},{n:'Temizlik malzemeleri',c:'#6366F1'}],steps:[{t:'Boşalt',d:'Her şeyi çıkar, at-tut ayır'},{t:'Sınıfla',d:'Alet, bahçe, mevsimlik, temizlik olarak grupla'},{t:'Yerleştir',d:'Duvar panolarına as, ağırları zemine koy'},{t:'Etiketle',d:'Kutuları ve bölgeleri işaretle'}],shop:[{i:'Duvar montaj pano sistemi',p:'₺200-500',s:'Hepsiburada',u:'https://www.hepsiburada.com/ara?q=duvar+pano'},{i:'Ağır hizmet raf ünitesi',p:'₺300-800',s:'Trendyol',u:'https://www.trendyol.com/sr?q=ağır+hizmet+raf'},{i:'Etiketli saklama kutuları (6lı)',p:'₺150-350',s:'Amazon',u:'https://www.amazon.com.tr/s?k=saklama+kutusu+seti'},{i:'Kanca ve askı seti',p:'₺50-120',s:'Trendyol',u:'https://www.trendyol.com/sr?q=kanca+askı+seti'}]},en:{score:28,issues:['Tools and supplies mixed','Floor space wasted','No wall mounting','Seasonal items messy'],zones:[{n:'Frequent tools',c:'#E8593C'},{n:'Garden supplies',c:'#0D9E6D'},{n:'Seasonal items',c:'#D4A843'},{n:'Cleaning supplies',c:'#6366F1'}],steps:[{t:'Empty',d:'Remove all, sort keep vs toss'},{t:'Categorize',d:'Tools, garden, seasonal, cleaning'},{t:'Place',d:'Wall-mount tools, heavy on floor'},{t:'Label',d:'Mark boxes and zones'}],shop:[{i:'Wall mount pegboard',p:'$25-60',s:'Amazon',u:'https://www.amazon.com.tr/s?k=pegboard'},{i:'Heavy duty shelving',p:'$40-100',s:'Amazon',u:'https://www.amazon.com.tr/s?k=heavy+duty+shelf'},{i:'Storage bins (6pc)',p:'$20-40',s:'Amazon',u:'https://www.amazon.com.tr/s?k=storage+bins'},{i:'Hook and hanger set',p:'$8-15',s:'Amazon',u:'https://www.amazon.com.tr/s?k=hook+set'}]}}
+};
+
+const AREAS=[{k:'pantry',e:'🫙',bg:'#FEF3C7'},{k:'wardrobe',e:'👔',bg:'#EDE9FE'},{k:'office',e:'📚',bg:'#DBEAFE'},{k:'garage',e:'🔧',bg:'#D1FAE5'}];
+
+// ===== HELPERS =====
+function T(){return STR[lang]}
+function go(id){
+  document.querySelectorAll('.screen,.analyzing').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  if(id==='home')document.getElementById('tabHome').classList.add('on');
+  if(id==='settings')document.getElementById('tabSettings').classList.add('on');
+  if(id==='result')document.getElementById('tabHome').classList.add('on');
+  window.scrollTo(0,0);
+}
+function switchLang(){setLang(lang==='tr'?'en':'tr')}
+function setLang(l){lang=l;document.getElementById('lbTR').classList.toggle('on',l==='tr');document.getElementById('lbEN').classList.toggle('on',l==='en');render()}
+function toggleVoice(){voiceOn=!voiceOn;document.getElementById('voiceToggle').classList.toggle('on',voiceOn);document.getElementById('voiceBar').style.display=voiceOn?'flex':'none';render()}
+function sayText(txt){if(!voiceOn||!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang=lang==='tr'?'tr-TR':'en-US';u.rate=1;window.speechSynthesis.speak(u)}
+function closePopup(){document.getElementById('popup').classList.remove('active')}
+
+function startAnalysis(area){
+  currentArea=area;
+  document.querySelectorAll('.screen,.analyzing').forEach(s=>s.classList.remove('active'));
+  const a=document.getElementById('analyzingScreen');a.classList.add('active');
+  document.getElementById('analyzingText').textContent=T().analyzing;
+  document.getElementById('analyzingSub').textContent=T().analyzingSub;
+  if(voiceOn)sayText(lang==='tr'?'Analiz ediliyor':'Analyzing');
+  setTimeout(()=>{
+    currentResult=DEMO[area]?.[lang]||DEMO.pantry[lang];
+    showResult();
+    setTimeout(()=>{
+      document.getElementById('popup').classList.add('active');
+      if(voiceOn)sayText(T().productDesc);
+    },3000);
+  },2000);
+}
+
+function readAllSteps(){
+  if(!currentResult)return;
+  const txt=currentResult.steps.map((s,i)=>`${i+1}. ${s.t}: ${s.d}`).join('. ');
+  sayText(txt);
+}
+
+// ===== RENDER =====
+function render(){
+  const t=T();
+  // Home
+  document.getElementById('vbTitle').textContent=t.voiceCommand;
+  document.getElementById('vbSub').textContent=t.voiceHint;
+  document.getElementById('heroTitle').textContent=t.heroTitle;
+  document.getElementById('heroSub').textContent=t.heroSub;
+  document.getElementById('scanText').textContent=t.scanArea;
+  document.getElementById('areaLabel').textContent=t.areaTypes;
+  document.getElementById('recentLabel').textContent=t.recentScans;
+
+  // Area grid
+  let ag='';
+  AREAS.forEach(a=>{
+    const sub=a.k==='pantry'?t.mostPopular:`8+ ${t.templates}`;
+    ag+=`<div class="a-card" onclick="startAnalysis('${a.k}')"><div class="a-icon" style="background:${a.bg}">${a.e}</div><div class="a-name">${t[a.k]}</div><div class="a-sub">${sub}</div></div>`;
+  });
+  document.getElementById('areaGrid').innerHTML=ag;
+
+  // Recent
+  const r1=lang==='tr'?'Mutfak kileri':'Kitchen pantry';
+  const r2=lang==='tr'?'Ofis rafı':'Office shelf';
+  document.getElementById('recentCard').innerHTML=`
+    <div class="recent"><div class="r-thumb" style="background:#E8D5B7"></div><div style="flex:1"><div class="r-name">${r1}</div><div class="r-time">${t.today}</div></div><div class="badge" style="background:#DCFCE7;color:#16A34A">%87</div></div>
+    <div class="recent"><div class="r-thumb" style="background:#C5D5E4"></div><div style="flex:1"><div class="r-name">${r2}</div><div class="r-time">${t.yesterday}</div></div><div class="badge" style="background:#FEE2E2;color:#E8593C">%34</div></div>`;
+
+  // Tabs
+  document.getElementById('tabHomeL').textContent=t.home;
+  document.getElementById('tabScansL').textContent=t.scans;
+  document.getElementById('tabVoiceL').textContent=t.voice;
+  document.getElementById('tabSettL').textContent=t.profile;
+
+  // Settings
+  document.getElementById('settBack').textContent=t.back;
+  document.getElementById('settTitle').textContent=t.settings;
+  document.getElementById('settCard').innerHTML=`
+    <div class="sett"><div class="sett-left"><div class="sett-icon">🌍</div><div><div class="sett-name">${t.language}</div><div class="sett-sub">${lang==='tr'?'Türkçe':'English'}</div></div></div><button class="ni" onclick="switchLang()" style="font-size:12px;font-weight:500;color:var(--p)">${lang==='tr'?'EN':'TR'}</button></div>
+    <div class="sett"><div class="sett-left"><div class="sett-icon">🎙️</div><div><div class="sett-name">${t.voiceNav}</div></div></div><div class="toggle ${voiceOn?'on':''}" onclick="toggleVoice()"></div></div>
+    <div class="sett"><div class="sett-left"><div class="sett-icon">🔤</div><div><div class="sett-name">${t.largeText}</div></div></div><div class="toggle ${bigText?'on':''}" onclick="bigText=!bigText;document.body.style.fontSize=bigText?'18px':'';render()"></div></div>`;
+
+  // Popup
+  document.getElementById('popTitle').textContent=t.productTitle;
+  document.getElementById('popDesc').textContent=t.productDesc;
+  document.getElementById('popYes').textContent=t.viewProducts;
+  document.getElementById('popNo').textContent=t.notNow;
+  document.getElementById('popNote').textContent=t.productNote;
+}
+
+function showResult(){
+  const t=T(),r=currentResult;
+  go('result');
+  document.getElementById('backText').textContent=t.back;
+  document.getElementById('resultTitle').textContent=t.analysisResult;
+  document.getElementById('layoutLabel').textContent=t.suggestedLayout;
+  document.getElementById('guideLabel').textContent=t.orderGuide;
+
+  const sc=r.score,col=sc<40?'#E8593C':sc<70?'#D4A843':'#0D9E6D';
+  const lab=sc<40?t.needsReorg:sc<70?t.good:t.excellent;
+  document.getElementById('scoreWrap').innerHTML=`<div class="score-circle" style="border-color:${col}"><div class="score-val" style="color:${col}">${sc}</div><div class="score-max">/ 100</div></div><div class="score-label" style="color:${col}">${lab}</div><div class="score-area">${t[currentArea]}</div>`;
+
+  document.getElementById('issuesCard').innerHTML=`<div class="card-title" style="color:#E8593C">⚠ ${t.detectedIssues}</div>${r.issues.map(i=>`<div class="card-item">• ${i}</div>`).join('')}`;
+
+  document.getElementById('zonesWrap').innerHTML=r.zones.map(z=>`<div class="zone" style="border-color:${z.c}"><div class="zone-dot" style="background:${z.c}"></div><div class="zone-name">${z.n}</div></div>`).join('');
+
+  document.getElementById('stepsWrap').innerHTML=r.steps.map((s,i)=>`<div class="step"><div class="s-num">${i+1}</div><div style="flex:1"><div class="s-title">${s.t}</div><div class="s-desc">${s.d}</div>${voiceOn?`<div class="listen" onclick="sayText('${s.t}. ${s.d.replace(/'/g,"\\'")}')">▶ ${t.listen}</div>`:''}</div></div>`).join('');
+
+  document.getElementById('shopCard').innerHTML=`<div class="card-title" style="color:var(--p);background:var(--pl);margin:-16px -16px 12px;padding:12px 16px;border-radius:16px 16px 0 0">🛒 ${t.shoppingList}</div>${r.shop.map(s=>`<div class="shop"><div style="flex:1"><div class="shop-name">${s.i}</div><div class="shop-price">${s.p} · ${s.s}</div></div><a class="shop-btn" href="${s.u}" target="_blank">🔗</a></div>`).join('')}`;
+  document.getElementById('shopCard').style.background='var(--pl)';
+
+  if(voiceOn){
+    const txt=lang==='tr'
+      ?`Analiz tamamlandı. Düzen puanınız yüz üzerinden ${sc}. ${r.steps.map((s,i)=>`Adım ${i+1}: ${s.t}. ${s.d}`).join('. ')}`
+      :`Analysis complete. Score ${sc} out of 100. ${r.steps.map((s,i)=>`Step ${i+1}: ${s.t}. ${s.d}`).join('. ')}`;
+    sayText(txt);
+  }
+}
+
+// ===== SERVICE WORKER =====
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}
+
+// ===== INIT =====
+render();
+</script>
+</body>
+</html>
